@@ -42,7 +42,6 @@ def analyze_emotions():
 
     for image_file in image_files:
         image_path = os.path.join(folder_path, image_file)
-        #logging.debug(f"Processing image: {image_path}")
 
         # Check if the file exists
         if not os.path.exists(image_path):
@@ -59,19 +58,28 @@ def analyze_emotions():
 
         # Analyze emotions using DeepFace
         try:
-            res = DeepFace.analyze(img, actions=['emotion'], detector_backend='opencv')
+            res = DeepFace.analyze(img, actions=['emotion'], detector_backend='opencv', enforce_detection=False)
             if isinstance(res, list):
                 res = res[0]
 
             emotions = res['emotion']
-            max_emotion = max(emotions, key=emotions.get)
+
+            # Normalize the emotion scores to sum up to 100%
+            total_score = sum(emotions.values())
+            if total_score > 0:
+                emotions_normalized = {emotion: (score / total_score) * 100 for emotion, score in emotions.items()}
+            else:
+                emotions_normalized = {emotion: 0 for emotion in emotions}  # No detectable emotions
+
+            # Determine the dominant emotion
+            max_emotion = max(emotions_normalized, key=emotions_normalized.get)
 
             # Append successful analysis to results
             results.append({
                 "file": image_file,
-                "emotions": {emotion: f"{score:.2f}" for emotion, score in emotions.items()},
+                "emotions": {emotion: round(score, 2) for emotion, score in emotions_normalized.items()},
                 "dominant_emotion": max_emotion,
-                "dominant_score": f"{emotions[max_emotion]:.2f}"
+                "dominant_score": round(emotions_normalized[max_emotion], 2)
             })
         except Exception as e:
             logging.exception(f"Error analyzing image: {image_path}")

@@ -17,6 +17,8 @@ const storeScoresRoutes = require('./routes/storeScores');
 const app = express();
 const PORT = 3000;
 
+// app.use("/photos",express.static(path.join(__dirname+"photos/")));
+app.use('/hyd', express.static(path.join(__dirname, 'photos')));
 
 connectToMongoDB("mongodb+srv://GirishChiluveru:admin@cluster0.ytwmf.mongodb.net/?retryWrites=true&w=majority")
 .then(()=>console.log("MongoDB connected"))
