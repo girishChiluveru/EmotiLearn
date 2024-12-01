@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
@@ -9,9 +10,6 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 
 // Color palette for charts
@@ -35,7 +33,8 @@ const EMOJI_MAP = {
   disgust: "🤢",
 };
 
-const IMAGE_BASE_PATH = `photos`;
+// Base URL for images
+const BASE_URL = "http://localhost:3000/";
 
 const ChildResult = () => {
   const location = useLocation();
@@ -53,7 +52,12 @@ const ChildResult = () => {
         const response = await axios.get(
           `http://localhost:3000/reports/${childName}/${sessionId}`
         );
-        setReport(response.data);
+        // Normalize image paths by replacing "\\" with "/" and prefixing the base URL
+        const normalizedImages = response.data.images.map((image) => ({
+          ...image,
+          imgpath: `${BASE_URL}${image.imgpath.replace(/\\/g, "/")}`,
+        }));
+        setReport({ ...response.data, images: normalizedImages });
         setLoading(false);
       } catch (err) {
         console.error("Error fetching report:", err);
@@ -197,7 +201,7 @@ const ChildResult = () => {
                 }}
               >
                 <img
-                  src={`${IMAGE_BASE_PATH}/${image.imgpath}`}
+                  src={image.imgpath}
                   alt={`Analysis for ${image.imgpath}`}
                   style={{
                     width: "150px",
