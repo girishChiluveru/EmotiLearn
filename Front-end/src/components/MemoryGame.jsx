@@ -88,8 +88,8 @@ function MemoryGame({ onFinish, childName, sessionId }) {
                 childName={childName} 
                 sessionId={sessionId} 
                 gameId={gameId} 
-                captureInterval={3000} 
-                screenshotInterval={6000} 
+                captureInterval={4000} 
+                screenshotInterval={4000} 
                 uploadUrl="http://localhost:3000/photos"
             />
     

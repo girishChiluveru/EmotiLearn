@@ -1,72 +1,214 @@
-const fs=require('fs');
-const path=require('path');
-const reports=require('../models/report');
+// const fs = require('fs');
+// const path = require('path');
+// const reports = require('../models/report');
 
+// async function handleUploading(req, res) {
+//     const { image, filename, childName, sessionId } = req.body;
+
+//     if (!image || !filename || !childName || !sessionId) {
+//         return res.status(400).json({ error: 'Missing required fields: image, filename, childName, or sessionId' });
+//     }
+
+//     // Define the directory structure
+//     const imagesDirectory = path.join(__dirname, '..', 'photos');
+//     const sessionDirectory = path.join(imagesDirectory, childName, sessionId);
+
+//     // Create directories if they don’t exist
+//     if (!fs.existsSync(sessionDirectory)) {
+//         fs.mkdirSync(sessionDirectory, { recursive: true });
+//     }
+
+//     // Save the file
+//     const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+//     const filePath = path.join(sessionDirectory, filename);
+//     const relativePath = path.join('photos', childName, sessionId, filename);
+
+//     try {
+//         fs.writeFileSync(filePath, base64Data, 'base64');
+
+//         if (filename.includes('img')) {
+//             // Handle `img` file
+//             const screenshotFilename = filename.replace('img', 'screenshot');
+//             const screenshotPath = path.join(sessionDirectory, screenshotFilename);
+//             const screenshotRelativePath = path.join('photos', childName, sessionId, screenshotFilename);
+
+//             // Check if the corresponding screenshot exists
+//             const existingScreenshot = fs.existsSync(screenshotPath) ? screenshotRelativePath : null;
+
+//             await reports.findOneAndUpdate(
+//                 { childname: childName, sessionid: sessionId },
+//                 {
+//                     $push: {
+//                         images: {
+//                             imgpath: relativePath,
+//                             screenshotpath: existingScreenshot || null
+//                         }
+//                     }
+//                 },
+//                 { upsert: true, new: true }
+//             );
+//         } else if (filename.includes('screenshot')) {
+//             // Handle `screenshot` file
+//             const imgFilename = filename.replace('screenshot', 'img');
+//             const imgPath = path.join(sessionDirectory, imgFilename);
+//             const imgRelativePath = path.join('photos', childName, sessionId, imgFilename);
+
+//             // Check if the corresponding image exists
+//             const existingImage = fs.existsSync(imgPath) ? imgRelativePath : null;
+
+//             if (existingImage) {
+//                 // Update the existing `images` object with the screenshot
+//                 await reports.findOneAndUpdate(
+//                     {
+//                         childname: childName,
+//                         sessionid: sessionId,
+//                         'images.imgpath': existingImage
+//                     },
+//                     {
+//                         $set: {
+//                             'images.$.screenshotpath': relativePath
+//                         }
+//                     },
+//                     { new: true }
+//                 );
+//             } else {
+//                 // Add a new entry if the image does not exist
+//                 await reports.findOneAndUpdate(
+//                     { childname: childName, sessionid: sessionId },
+//                     {
+//                         $push: {
+//                             images: {
+//                                 imgpath: null,
+//                                 screenshotpath: relativePath
+//                             }
+//                         }
+//                     },
+//                     { upsert: true, new: true }
+//                 );
+//             }
+//         }
+
+//         res.json({ success: true, message: `File saved and database updated successfully` });
+//     } catch (error) {
+//         console.error("Error saving file or updating database:", error);
+//         res.status(500).json({ error: 'Error saving file or updating database' });
+//     }
+// }
+
+// module.exports = {
+//     handleUploading
+// };
+
+
+const fs = require('fs');
+const path = require('path');
+const reports = require('../models/report');
 
 async function handleUploading(req, res) {
     const { image, filename, childName, sessionId } = req.body;
 
-    // Ensure all required fields are provided
     if (!image || !filename || !childName || !sessionId) {
         return res.status(400).json({ error: 'Missing required fields: image, filename, childName, or sessionId' });
     }
 
-    // Define the absolute path for the photos directory (outside the controllers directory)
+    // Define the directory structure
     const imagesDirectory = path.join(__dirname, '..', 'photos');
-    if (!fs.existsSync(imagesDirectory)) {
-        fs.mkdirSync(imagesDirectory, { recursive: true });
-    }
-
-    const childDirectory = path.join(imagesDirectory, childName);
-    const sessionDirectory = path.join(childDirectory, sessionId);
+    const sessionDirectory = path.join(imagesDirectory, childName, sessionId);
 
     // Create directories if they don’t exist
-    if (!fs.existsSync(childDirectory)) {
-        fs.mkdirSync(childDirectory, { recursive: true });
-    }
     if (!fs.existsSync(sessionDirectory)) {
         fs.mkdirSync(sessionDirectory, { recursive: true });
     }
 
-    // Decode base64 image and save it
-    const base64Data = image.replace(/^data:image\/png;base64,/, "");
+    // Save the file
+    const base64Data = image.replace(/^data:image\/\w+;base64,/, "");
     const filePath = path.join(sessionDirectory, filename);
+    const relativePath = path.join('photos', childName, sessionId, filename);
 
     try {
-        // Save the file
         fs.writeFileSync(filePath, base64Data, 'base64');
 
-        // Add only the image path to the `images` array
-        const imagePath = path.join('photos', childName, sessionId, filename); // Relative path
+        // If the file is an image (contains 'img' in its name)
+        if (filename.includes('img')) {
+            const imagePath = relativePath;
 
-        // Check if the imgpath already exists
-        const existingReport = await reports.findOne({
-            childname: childName,
-            sessionid: sessionId,
-            "images.imgpath": imagePath, // Check if the imgpath already exists
-        });
+            // Check if the corresponding screenshot exists
+            const screenshotFilename = filename.replace('img', 'screenshot');
+            const screenshotPath = path.join(sessionDirectory, screenshotFilename);
+            const screenshotRelativePath = path.join('photos', childName, sessionId, screenshotFilename);
 
-        if (existingReport) {
-            // If the image path already exists, skip adding it
-            return res.status(200).json({ success: false, message: 'Duplicate image path, not added again.' });
+            // Find the existing report for the child and session
+            const report = await reports.findOne({
+                childname: childName,
+                sessionid: sessionId
+            });
+
+            if (report) {
+                // If the report exists, check if the image already exists in the images array
+                const existingImage = report.images.find(img => img.imgpath === imagePath);
+
+                if (!existingImage) {
+                    // Add the image to the database if it does not exist
+                    await reports.updateOne(
+                        { childname: childName, sessionid: sessionId },
+                        {
+                            $push: {
+                                images: {
+                                    imgpath: imagePath,
+                                    screenshotpath: screenshotRelativePath // Initially set screenshotpath
+                                }
+                            }
+                        }
+                    );
+                    console.log(`Image added: ${imagePath}`);
+                }
+            } else {
+                // If no report exists, create a new one with the image
+                await reports.create({
+                    childname: childName,
+                    sessionid: sessionId,
+                    images: [
+                        {
+                            imgpath: imagePath,
+                            screenshotpath: screenshotRelativePath // Initially set screenshotpath
+                        }
+                    ]
+                });
+                console.log(`New report created with image: ${imagePath}`);
+            }
+
+            // If the screenshot exists, update the database with the screenshot path
+            if (fs.existsSync(screenshotPath)) {
+                await reports.updateOne(
+                    { childname: childName, sessionid: sessionId },
+                    {
+                        $set: {
+                            'images.$[elem].screenshotpath': screenshotRelativePath
+                        }
+                    },
+                    {
+                        arrayFilters: [{ 'elem.imgpath': imagePath }],
+                        new: true
+                    }
+                );
+                console.log(`Screenshot added for ${imagePath}: ${screenshotRelativePath}`);
+            }
+
+        } else if (filename.includes('screenshot')) {
+            // If a screenshot is uploaded first, do nothing and return
+            console.log(`Screenshot uploaded first without corresponding image, not adding to database: ${filename}`);
+            return res.json({ success: true, message: 'Screenshot uploaded first, not added to the database.' });
         }
 
-        // Find the document by childName and sessionId, and update the images array
-        await reports.findOneAndUpdate(
-            { childname: childName, sessionid: sessionId }, // Find by childName and sessionId
-            { $push: { images: { imgpath: imagePath } } },  // Push the new image path to the images array
-            { new: true, upsert: true }                     // Create a new document if it doesn't exist
-        );
-
-        // Respond to the client only once
-        res.json({ success: true, message: 'Image saved and path updated successfully' });
+        res.json({ success: true, message: 'File saved and database updated successfully' });
     } catch (error) {
-        console.error("Error saving image or updating database:", error);
-        res.status(500).json({ error: 'Error saving image or updating database' });
+        console.error("Error saving file or updating database:", error);
+        res.status(500).json({ error: 'Error saving file or updating database' });
     }
 }
 
-
-module.exports={
+module.exports = {
     handleUploading
-}
+};
+
+

@@ -25,6 +25,10 @@ const reportSchema = new mongoose.Schema({
             type: String,
             required: true,
         },
+        screenshotpath:{
+            type:String,
+            required:true
+        },
         emotions: {
             angry: { type: Number, required: true, default: 0 },
             disgust: { type: Number, required: true, default: 0 },
