@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // /* eslint-disable no-unused-vars */
 // import React, { useEffect, useRef, useState } from 'react';
 // import PropTypes from 'prop-types';
@@ -125,6 +126,9 @@
 // export default Capturing;
 
 
+=======
+/* eslint-disable react-hooks/exhaustive-deps */
+>>>>>>> 8acdf7bd7846de2be1a85e5c9aa2bc579c7be9a7
 /* eslint-disable no-unused-vars */
 import React, { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
